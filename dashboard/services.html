@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Services | Task Overview</title>
+  <style>
+    * { box-sizing: border-box; font-family: Helvetica, Arial, sans-serif; }
+    body { margin:0; background:#f2f3f7; }
+
+    /* Layout */
+    .sidebar{
+      position:fixed; left:0; top:0; bottom:0; width:70px;
+      background:#4b2bd6; color:#fff; display:flex; flex-direction:column; align-items:center; padding-top:20px;
+    }
+    .sidebar div{ margin:18px 0; opacity:.85 }
+
+    .header{
+      margin-left:70px; height:60px; background:#f7f7f7; display:flex; align-items:center; justify-content:center;
+      font-weight:600; letter-spacing:2px; box-shadow:0 1px 3px rgba(0,0,0,.1)
+    }
+
+    .container{ margin-left:70px; padding:25px; }
+
+    /* Toolbar */
+    .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
+    .left-tools{ display:flex; gap:12px; align-items:center; }
+    .search{
+      width:280px; padding:8px 10px; border-radius:6px; border:1px solid #ccc;
+    }
+    select{ padding:8px; border-radius:6px; border:1px solid #ccc; }
+
+    .right-tools button{
+      border:none; padding:8px 12px; border-radius:6px; margin-left:8px; cursor:pointer;
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .reject{ background:#2196f3; color:#fff; position:relative; }
+    .badge{ position:absolute; top:-6px; right:-6px; background:red; color:#fff; font-size:11px; padding:2px 6px; border-radius:50%; }
+    .qr{ background:#ddd; }
+    .qr:hover{ background:#2196f3; color:#fff }
+    .dayend{ background:#4caf50; color:#fff }
+    .dayend.inactive{ background:#bbb }
+
+    /* Table Card */
+    .card{
+      background:#fff; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.08);
+      overflow:hidden;
+    }
+    table{ width:100%; border-collapse:collapse; }
+    th,td{ padding:12px; text-align:left; }
+    th{ background:#fafafa; font-size:13px; }
+    tr:nth-child(even){ background:#f7f7fb }
+    tr:hover{ background:#eae7ff; cursor:pointer }
+    tr.active{ background:#dff5df !important }
+
+    /* Pagination */
+    .pagination{
+      display:flex; justify-content:space-between; align-items:center; padding:12px;
+    }
+
+    /* Toast */
+    .toast{
+      position:fixed; bottom:20px; right:20px; background:#f44336; color:#fff;
+      padding:12px 18px; border-radius:6px; display:none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div>Logo</div>
+  <div>🏠</div>
+  <div>📋</div>
+  <div>📊</div>
+  <div>⚙️</div>
+</div>
+
+<div class="header">SERVICES</div>
+
+<div class="container">
+  <div class="toolbar">
+    <div class="left-tools">
+      <input class="search" placeholder="Search" oninput="applyFilters()" />
+      <select id="brandFilter" onchange="applyFilters()"><option value="">All Brands</option></select>
+      <select id="advisorFilter" onchange="applyFilters()"><option value="">All Advisors</option></select>
+    </div>
+    <div class="right-tools">
+      <button class="reject" onclick="location.href='rejection.html'">REJECTION <span class="badge">3</span></button>
+      <button class="qr" onclick="alert('QR Scanner clicked')">QR</button>
+      <button id="dayEndBtn" class="dayend" onclick="dayEnd()" title="Day End Task">Day End</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>PLATE NO</th><th>BRAND</th><th>JOB CARD ID</th><th>EST DELIVERY</th><th>ADVISOR NAME</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="pagination">
+      <div>Rows per page: <select><option>10</option><option>25</option><option>50</option></select></div>
+      <div>1 - 10 of 25</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const jobOrders = [
+  { plateNo: "KL-07-AB-1234", brand: "Toyota", jobCardId: "JC1001", estDelivery: "05-Jun-2025", advisor: "Anees" },
+  { plateNo: "KL-08-CD-5678", brand: "Honda", jobCardId: "JC1002", estDelivery: "10-Jun-2025", advisor: "Ramesh" },
+  { plateNo: "KL-10-EF-9012", brand: "Ford", jobCardId: "JC1003", estDelivery: "12-Jun-2025", advisor: "Kiran" },
+  { plateNo: "KL-11-GH-3456", brand: "BMW", jobCardId: "JC1004", estDelivery: "15-Jun-2025", advisor: "Anees" },
+  { plateNo: "KL-12-IJ-7890", brand: "Mercedes", jobCardId: "JC1005", estDelivery: "18-Jun-2025", advisor: "Ramesh" },
+  { plateNo: "KL-13-KL-1122", brand: "Toyota", jobCardId: "JC1006", estDelivery: "20-Jun-2025", advisor: "Joseph" },
+  { plateNo: "KL-14-MN-3344", brand: "Honda", jobCardId: "JC1007", estDelivery: "22-Jun-2025", advisor: "Kiran" },
+  { plateNo: "KL-15-OP-5566", brand: "Ford", jobCardId: "JC1008", estDelivery: "25-Jun-2025", advisor: "Anees" },
+  { plateNo: "KL-16-QR-7788", brand: "BMW", jobCardId: "JC1009", estDelivery: "28-Jun-2025", advisor: "Ramesh" },
+  { plateNo: "KL-17-ST-9900", brand: "Mercedes", jobCardId: "JC1010", estDelivery: "30-Jun-2025", advisor: "Joseph" },
+  { plateNo: "KL-18-UA-1111", brand: "Toyota", jobCardId: "JC1011", estDelivery: "02-Jul-2025", advisor: "Anees" },
+  { plateNo: "KL-19-VB-2222", brand: "Honda", jobCardId: "JC1012", estDelivery: "05-Jul-2025", advisor: "Ramesh" },
+  { plateNo: "KL-20-WC-3333", brand: "Ford", jobCardId: "JC1013", estDelivery: "07-Jul-2025", advisor: "Kiran" },
+  { plateNo: "KL-21-XD-4444", brand: "BMW", jobCardId: "JC1014", estDelivery: "10-Jul-2025", advisor: "Joseph" },
+  { plateNo: "KL-22-YE-5555", brand: "Mercedes", jobCardId: "JC1015", estDelivery: "12-Jul-2025", advisor: "Anees" },
+  { plateNo: "KL-23-ZF-6666", brand: "Toyota", jobCardId: "JC1016", estDelivery: "15-Jul-2025", advisor: "Kiran" },
+  { plateNo: "KL-24-AG-7777", brand: "Honda", jobCardId: "JC1017", estDelivery: "17-Jul-2025", advisor: "Ramesh" },
+  { plateNo: "KL-25-BH-8888", brand: "Ford", jobCardId: "JC1018", estDelivery: "20-Jul-2025", advisor: "Joseph" },
+  { plateNo: "KL-26-CI-9999", brand: "BMW", jobCardId: "JC1019", estDelivery: "22-Jul-2025", advisor: "Anees" },
+  { plateNo: "KL-27-DJ-1010", brand: "Mercedes", jobCardId: "JC1020", estDelivery: "25-Jul-2025", advisor: "Kiran" },
+  { plateNo: "KL-28-EK-2020", brand: "Toyota", jobCardId: "JC1021", estDelivery: "27-Jul-2025", advisor: "Joseph" },
+  { plateNo: "KL-29-FL-3030", brand: "Honda", jobCardId: "JC1022", estDelivery: "30-Jul-2025", advisor: "Anees" },
+  { plateNo: "KL-30-GM-4040", brand: "Ford", jobCardId: "JC1023", estDelivery: "01-Aug-2025", advisor: "Ramesh" },
+  { plateNo: "KL-31-HN-5050", brand: "BMW", jobCardId: "JC1024", estDelivery: "03-Aug-2025", advisor: "Kiran" },
+  { plateNo: "KL-32-IO-6060", brand: "Mercedes", jobCardId: "JC1025", estDelivery: "05-Aug-2025", advisor: "Joseph" }
+];
+
+const tbody = document.getElementById('tbody');
+const brandFilter = document.getElementById('brandFilter');
+const advisorFilter = document.getElementById('advisorFilter');
+const searchInput = document.querySelector('.search');
+
+function initFilters(){
+  [...new Set(jobOrders.map(j=>j.brand))].forEach(b=>brandFilter.innerHTML+=`<option>${b}</option>`);
+  [...new Set(jobOrders.map(j=>j.advisor))].forEach(a=>advisorFilter.innerHTML+=`<option>${a}</option>`);
+}
+
+function render(data){
+  tbody.innerHTML='';
+  data.slice(0,15).forEach(j=>{
+    const tr=document.createElement('tr');
+    if(j.jobCardId==='JC1002') tr.classList.add('active');
+    tr.innerHTML=`<td>${j.plateNo}</td><td>${j.brand}</td><td>${j.jobCardId}</td><td>${j.estDelivery}</td><td>${j.advisor}</td>`;
+    tr.onclick=()=>location.href='task/startservice.html';
+    tbody.appendChild(tr);
+  })
+}
+
+function applyFilters(){
+  const s=searchInput.value.toLowerCase();
+  render(jobOrders.filter(j=>
+    (!brandFilter.value||j.brand===brandFilter.value)&&
+    (!advisorFilter.value||j.advisor===advisorFilter.value)&&
+    (j.plateNo+j.brand+j.jobCardId+j.advisor).toLowerCase().includes(s)
+  ));
+}
+
+function dayEnd(){
+  if(!confirm('Do you want to end the day task?')){
+    alert('Break time skipped.'); return;
+  }
+  const h=prompt('Did you work during break time? Enter hours');
+  const m=prompt('Enter minutes');
+  if((!h&&!m)||(h==0&&m==0)){
+    const t=document.getElementById('toast');
+    t.textContent='Please enter valid worked hours or minutes.';
+    t.style.display='block';
+    setTimeout(()=>t.style.display='none',2500);
+    return;
+  }
+  alert('Day Ended Successfully');
+}
+
+initFilters(); render(jobOrders);
+</script>
+</body>
+</html>
